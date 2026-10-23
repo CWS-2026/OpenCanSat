@@ -61,6 +61,18 @@ Feel free to open an issue or submit a pull request.
 
 ## License
 
-See the [LICENSE](LICENSE) file for the repository's licensing information.
+OpenCanSat uses separate licenses for software
+and hardware:
 
-Hardware design licensing will be documented separately as the project develops.
+- **Firmware:** MIT License
+- **Original Hardware Designs:** CERN Open Hardware
+  Licence Version 2 – Permissive (CERN-OHL-P-2.0)
+
+Third-party materials retain their original
+licensing terms.
+
+For more information, see:
+
+- [Software License](LICENSE)
+- [Hardware License](hardware/LICENSE)
+- [Third-Party Notices](hardware/THIRD_PARTY_NOTICES.md)
