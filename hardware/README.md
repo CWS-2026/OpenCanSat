@@ -30,8 +30,18 @@ Additional hardware design files, including mechanical CAD models and circuit sc
 
 ## License
 
-The original hardware designs in this directory are
-licensed under the CERN Open Hardware Licence
-Version 2 – Permissive (CERN-OHL-P-2.0).
+Original hardware designs developed by the
+OpenCanSat contributors are licensed under the
+CERN Open Hardware Licence Version 2 –
+Permissive (CERN-OHL-P-2.0).
 
-See [LICENSE](LICENSE) for details.
+This license applies only to materials for which
+the OpenCanSat contributors hold the necessary rights.
+
+Third-party components and graphical assets,
+including Fritzing parts, remain subject to their
+respective licenses.
+
+See [LICENSE](LICENSE) for the hardware license
+and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+for third-party attribution and licensing information.
