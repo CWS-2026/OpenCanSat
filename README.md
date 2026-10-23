@@ -4,98 +4,63 @@
 
 ## Overview
 
-OpenCanSat is an open-source CanSat project built around the ESP32-S3 microcontroller. The project aims to provide a modular and accessible platform for collecting environmental and flight-related data using various sensors.
+OpenCanSat is an open-source CanSat project designed for environmental monitoring and flight data acquisition.
 
-The project is currently in its early development stage, focusing on individual sensor testing and hardware validation.
+Built around the ESP32-S3 microcontroller, the project aims to provide an accessible and modular platform for developing and experimenting with CanSat systems.
 
-## Hardware
+The project is currently under development, with an initial focus on hardware validation and individual sensor testing.
 
-The current hardware configuration includes the following components:
+## Features
 
-| Component | Model | Purpose |
-|---|---|---|
-| Microcontroller | ESP32-S3 | Main processing unit |
-| IMU | MPU6050 | 3-axis acceleration and angular velocity |
-| Environmental Sensor | BME280 | Temperature, humidity, and atmospheric pressure |
-| GPS Module | NEO-6M | Position, altitude, and satellite information |
+The current hardware configuration is designed to support:
 
-### Pin Configuration
+- **Motion Sensing** — 3-axis acceleration and angular velocity measurement using the MPU6050.
+- **Environmental Monitoring** — Temperature, humidity, and atmospheric pressure measurement using the BME280.
+- **GPS Tracking** — Geographic position and altitude acquisition using the NEO-6M.
+- **Modular Development** — Independent sensor testing and future system integration.
 
-| Component | Interface | ESP32-S3 Pins |
-|---|---|---|
-| MPU6050 | I2C | SDA: GPIO 8, SCL: GPIO 9 |
-| BME280 | I2C | SDA: GPIO 8, SCL: GPIO 9 |
-| NEO-6M | UART | RX: GPIO 44, TX: GPIO 43 |
+## Project Structure
 
-**Note:** GPIO 43 and GPIO 44 are also associated with the default UART0 interface on the ESP32-S3. Using these pins for GPS communication may conflict with serial debugging through a USB-to-UART interface. Native USB CDC debugging is recommended when using this configuration.
-
-Pin assignments may change as the hardware design evolves.
-
-## Firmware
-
-The firmware is developed using the Arduino framework for the ESP32-S3.
-
-### Project Structure
-
-The current firmware directory contains individual sensor testing programs.
-
-- `firmware/tests/mpu6050_test/mpu6050_test.ino` — MPU6050 accelerometer and gyroscope testing
-- `firmware/tests/bme280_test/bme280_test.ino` — BME280 environmental sensor testing
-- `firmware/tests/gps_test/gps_test.ino` — NEO-6M GPS module testing
-
-These programs are intended to verify the basic operation of each sensor independently before integration into the main CanSat firmware.
-
-### Dependencies
-
-The following Arduino libraries are used:
-
-| Library | Purpose |
+| Directory | Description |
 |---|---|
-| Wire | I2C communication |
-| Adafruit BME280 Library | BME280 sensor interface |
-| Adafruit Unified Sensor | Dependency for the BME280 library |
-| TinyGPSPlus | GPS data parsing |
+| [`firmware/`](firmware/) | Firmware source code and sensor testing programs |
+| [`hardware/`](hardware/) | Hardware design files, wiring diagrams, and documentation |
 
-Additional dependencies may be installed automatically through the Arduino Library Manager.
-
-### Getting Started
-
-1. Install Arduino IDE and the ESP32 board support package.
-2. Select the appropriate ESP32-S3 board.
-3. Install the required libraries using Arduino Library Manager.
-4. Connect the sensors according to the hardware configuration.
-5. Open the desired `.ino` test file in Arduino IDE.
-6. Compile and upload the program to the ESP32-S3.
-7. Open the Serial Monitor at **115200 baud** to view the sensor output.
-
-Each test program can be executed independently.
+For more information about the hardware configuration, see the [Hardware Documentation](hardware/README.md).
 
 ## Development Status
 
-OpenCanSat is currently under active development.
+OpenCanSat is currently in the early stages of development.
 
-**Current focus**
+### Current Development
+
 - Individual sensor testing
 - Hardware connection verification
-- Basic environmental and motion data acquisition
-- GPS communication testing
+- Initial wiring diagram design
 
-**Planned Development**
-- Integration of multiple sensors
-- Unified sensor data processing
+### Planned Development
+
+- Integrated sensor data acquisition
 - Flight data logging
 - Flight-state monitoring
+- Mechanical design documentation
 
-The planned features are subject to change as the project progresses.
+## Getting Started
+
+1. Prepare an ESP32-S3 development board and the required sensors.
+2. Refer to the [Hardware Documentation](hardware/README.md) for wiring information.
+3. Open the sensor testing programs in `firmware/tests/` using Arduino IDE.
+4. Install the required Arduino libraries.
+5. Upload the firmware and verify the sensor output through the Serial Monitor.
 
 ## Contributing
 
 Contributions, suggestions, and improvements are welcome.
 
-You can contribute by reporting issues, suggesting new features, improving documentation, or submitting pull requests.
+Feel free to open an issue or submit a pull request.
 
 ## License
 
-See the [LICENSE](LICENSE) file for the project's current licensing terms.
+See the [LICENSE](LICENSE) file for the repository's licensing information.
 
-Hardware-specific licensing information will be provided when the hardware design files are released.
+Hardware design licensing will be documented separately as the project develops.
