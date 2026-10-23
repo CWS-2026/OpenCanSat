@@ -27,3 +27,11 @@ The wiring diagram illustrates the connections between the ESP32-S3 and its peri
 ## Future Development
 
 Additional hardware design files, including mechanical CAD models and circuit schematics, will be added as development progresses.
+
+## License
+
+The original hardware designs in this directory are
+licensed under the CERN Open Hardware Licence
+Version 2 – Permissive (CERN-OHL-P-2.0).
+
+See [LICENSE](LICENSE) for details.
