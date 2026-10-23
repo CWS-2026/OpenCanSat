@@ -1,0 +1,5 @@
+﻿Component,Model,Quantity,Description
+Microcontroller,ESP32-S3,1,Main controller
+IMU,MPU6050,1,3-axis accelerometer and 3-axis gyroscope
+Environmental Sensor,BME280,1,"Temperature, humidity, and atmospheric pressure"
+GPS Module,NEO-6M,1,Position and altitude acquisition
