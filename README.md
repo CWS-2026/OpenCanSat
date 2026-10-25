@@ -1,34 +1,155 @@
-# OpenCanSat
+# 🛰️ OpenCanSat
 
 **An open-source ESP32-S3-based CanSat platform for environmental monitoring and flight data acquisition.**
 
+An accessible and modular satellite-inspired platform integrating environmental sensing, motion tracking, GPS positioning, and real-time data acquisition.
+
+**ESP32-S3** · **Arduino** · **Python** · **Open-Source Hardware**
+
+---
+
+![OpenCanSat 3D Model](hardware/mechanical/OpenCanSat.png)
+
+**[Explore Hardware](hardware/README.md)** · **[View Firmware](firmware/README.md)** · **[Ground Station](ground-station/README.md)** · **[Watch 3D Demonstration](hardware/mechanical/OpenCanSat.mp4)**
+
+---
+
 ## Overview
 
-OpenCanSat is an open-source CanSat prototype that integrates an ESP32-S3 with motion, environmental, and GPS sensors. Its current implementation collects sensor readings and streams them directly to a computer over USB serial. A cross-platform Python ground station displays the incoming telemetry and automatically saves valid data packets to CSV files for subsequent analysis.
+**OpenCanSat** is an open-source CanSat project designed to make satellite-inspired system development more accessible.
 
-The project is under active development. The repository provides integrated firmware, individual sensor tests, wiring documentation, and editable mechanical CAD files. **End-to-end operation on physical hardware has not yet been verified.**
+Powered by the ESP32-S3, the platform integrates environmental, motion, and GPS sensors into a compact system for collecting and analyzing flight-related data.
 
-## Hardware
+The current prototype transmits measurements directly to a computer through USB serial communication. A Python-based ground station receives the telemetry, displays live logs, and automatically saves measurement data in CSV format.
 
-| Component | Model | Purpose |
+The repository includes integrated firmware, sensor testing programs, hardware documentation, wiring diagrams, and editable mechanical designs.
+
+## Key Features
+
+| Feature | Description |
+|---|---|
+| **Environmental Monitoring** | Temperature, humidity, and atmospheric pressure using BME280 |
+| **Motion Tracking** | 3-axis acceleration and angular velocity using MPU6050 |
+| **GPS Positioning** | Geographic coordinates, GPS altitude, and satellite information using NEO-6M |
+| **Real-Time Telemetry** | Periodic sensor data transmission through USB serial |
+| **Ground Station** | Cross-platform Python terminal receiver for Windows, macOS, and Linux |
+| **CSV Data Logging** | Automatic recording of received telemetry for further analysis |
+| **Open Hardware** | Wiring diagrams, component documentation, and mechanical CAD files |
+
+## System Architecture
+
+```text
+                  OpenCanSat
+            ┌──────────────────┐
+            │     ESP32-S3     │
+            └────────┬─────────┘
+                     │
+        ┌────────────┼────────────┐
+        │            │            │
+    ┌───▼────┐  ┌────▼───┐  ┌─────▼────┐
+    │ MPU6050│  │ BME280 │  │ NEO-6M   │
+    │ Motion │  │Environment│ GPS      │
+    └────────┘  └────────┘  └──────────┘
+                     │
+              USB Serial
+               115200 baud
+                     │
+            ┌────────▼─────────┐
+            │  Ground Station  │
+            │  Python Terminal │
+            └────────┬─────────┘
+                     │
+             ┌───────┴────────┐
+             │                │
+         Live Logs       CSV Data Files
+```
+
+**Current communication:** USB serial. Wireless telemetry for untethered flight is not yet implemented.
+
+## Hardware Configuration
+
+| Component | Model | Interface |
 |---|---|---|
-| Microcontroller | ESP32-S3 | Sensor acquisition and USB serial telemetry |
-| IMU | MPU6050 | 3-axis acceleration and angular velocity |
-| Environmental sensor | BME280 | Temperature, humidity, and atmospheric pressure |
-| GPS receiver | NEO-6M | Position, GPS altitude, and satellite count |
+| Microcontroller | ESP32-S3 | USB / I2C / UART |
+| Inertial Measurement Unit | MPU6050 | I2C |
+| Environmental Sensor | BME280 | I2C |
+| GPS Receiver | NEO-6M | UART |
 
-See the [hardware documentation](hardware/README.md), [pin mapping](hardware/pinout.md), and [bill of materials](hardware/BOM.csv).
+The MPU6050 and BME280 share an I2C bus on GPIO8 and GPIO9. The GPS receiver communicates through GPIO44 (RX) and GPIO43 (TX).
 
-## Features
+For detailed documentation, see the [hardware specifications](hardware/README.md), [pin configuration](hardware/pinout.md), and [bill of materials](hardware/BOM.csv).
 
-- Integrated sampling of MPU6050, BME280, and NEO-6M data.
-- One comma-separated `DATA` telemetry record approximately every second (115200-baud USB serial).
-- Basic sensor-availability flags and GPS-fix indication; unavailable values are represented as `nan`.
-- Terminal-only ground station for Windows, macOS, and Linux.
-- **Automatic CSV recording on the ground-station computer**, with a UTC reception timestamp for each valid data packet.
-- Individual Arduino sensor-test sketches and original mechanical CAD files.
+### Wiring Diagram
 
-**Communication scope:** the current system uses a **USB cable**, not a wireless radio link. It is intended for bench testing and tethered data acquisition. Untethered flight telemetry requires additional communication hardware and software.
+![OpenCanSat Wiring Diagram](hardware/wiring/wiring_diagram.png)
+
+[View Editable Fritzing Project](hardware/wiring/OpenCanSat.fzz)
+
+## Quick Start
+
+### 1. Set Up the Hardware
+
+Connect the ESP32-S3 and peripheral modules according to the [wiring diagram](hardware/wiring/wiring_diagram.png).
+
+Verify the electrical requirements of your specific modules before powering the system.
+
+### 2. Upload the Firmware
+
+Install the ESP32 board support package in Arduino IDE and the following libraries:
+
+- Adafruit BME280 Library (including required dependencies)
+- TinyGPSPlus
+
+Open the [main firmware](firmware/OpenCanSat.ino/OpenCanSat.ino), select the appropriate ESP32-S3 board and USB configuration, then compile and upload.
+
+See the [firmware documentation](firmware/README.md) for full instructions.
+
+### 3. Launch the Ground Station
+
+Navigate to the `ground-station` directory.
+
+**Windows (PowerShell)**
+
+```powershell
+py -m pip install -r requirements.txt
+py ground_station.py
+```
+
+**macOS / Linux**
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 ground_station.py
+```
+
+The ground station automatically selects the serial port if only one is detected. When multiple ports are available, it prompts you to choose one.
+
+### 4. Receive and Save Telemetry
+
+Incoming telemetry is displayed in the terminal:
+
+```text
+[GROUND] Connected: COM3 @ 115200 baud
+[GROUND] Listening (Ctrl+C to stop)...
+
+[15:30:01] INFO,OpenCanSat boot
+[15:30:02] DATA,1000,1,0.000,0.000,1.000,...
+```
+
+The output above is illustrative.
+
+Valid `DATA` records are **automatically saved as CSV files** in:
+
+```text
+ground-station/logs/
+└── flight_YYYYMMDD_HHMMSS_microseconds.csv
+```
+
+Each CSV record includes a UTC reception timestamp, ESP32 uptime, sensor validity flags, and measured values.
+
+No onboard SD-card logging is required.
+
+See the [Ground Station Documentation](ground-station/README.md) for additional instructions.
 
 ## Repository Structure
 
@@ -36,18 +157,21 @@ See the [hardware documentation](hardware/README.md), [pin mapping](hardware/pin
 OpenCanSat/
 ├── README.md
 ├── LICENSE
+│
 ├── firmware/
 │   ├── README.md
 │   ├── OpenCanSat.ino/
 │   │   └── OpenCanSat.ino
 │   └── tests/
-│       ├── BME280/BME280.ino
-│       ├── MPU6050/MPU6050.ino
-│       └── NEO-6M/NEO-6M.ino
+│       ├── BME280/
+│       ├── MPU6050/
+│       └── NEO-6M/
+│
 ├── ground-station/
 │   ├── README.md
 │   ├── ground_station.py
 │   └── requirements.txt
+│
 └── hardware/
     ├── README.md
     ├── LICENSE
@@ -55,52 +179,55 @@ OpenCanSat/
     ├── pinout.md
     ├── THIRD_PARTY_NOTICES.md
     ├── wiring/
-    │   ├── OpenCanSat.fzz
-    │   └── wiring_diagram.png
     └── mechanical/
-        ├── OpenCanSat.f3d
-        ├── OpenCanSat.step
-        ├── OpenCanSat.stl
-        ├── OpenCanSat.png
-        └── OpenCanSat.mp4
 ```
 
-## Getting Started
+## Mechanical Design
 
-1. Connect the ESP32-S3 and sensors according to the [wiring diagram](hardware/wiring/wiring_diagram.png) and [pin mapping](hardware/pinout.md).
-2. Follow the [firmware instructions](firmware/README.md) to install Arduino libraries and upload the integrated sketch.
-3. Connect the board to your computer using a USB **data** cable.
-4. Follow the [ground-station instructions](ground-station/README.md) to install Python dependencies and start the receiver.
-5. Watch the live `INFO` and `DATA` records in the terminal. Valid `DATA` records are automatically saved under `ground-station/logs/`.
+The CanSat enclosure was designed using Autodesk Fusion 360.
 
-## Telemetry and Data Logging
+The repository provides editable CAD files, a 3D printing mesh, model previews, and a demonstration video.
 
-The firmware emits startup/status messages prefixed with `INFO,` and measurement records prefixed with `DATA,`. A measurement record includes ESP32 uptime, sensor status flags, accelerometer and gyroscope measurements, temperature, humidity, pressure, and GPS information.
+**[View Mechanical Design Files](hardware/mechanical/)** · **[Watch Demonstration](hardware/mechanical/OpenCanSat.mp4)**
 
-The ground station prints all received messages but writes **only valid `DATA` records** to CSV. Each saved row also includes the PC's UTC reception timestamp. See the [ground-station README](ground-station/README.md) for the complete column schema and file locations.
-
-No SD-card or onboard persistent logging is implemented.
+The enclosure remains a prototype and requires physical fit, structural, and flight-related validation.
 
 ## Development Status
 
-**Implemented in the repository:**
+| Development Area | Status |
+|---|---|
+| Individual sensor testing sketches | Implemented |
+| Integrated ESP32-S3 firmware | Implemented |
+| USB serial telemetry | Implemented |
+| Terminal-based ground station | Implemented |
+| Automatic CSV logging | Implemented |
+| Wiring and mechanical CAD documentation | Available |
+| Physical end-to-end hardware validation | Pending |
+| Wireless telemetry | Not implemented |
+| Flight-state detection | Not implemented |
 
-- Individual sensor test sketches and integrated sensor firmware.
-- USB serial telemetry and terminal-based receiver with automatic CSV logging.
-- Wiring diagram, pin mapping, BOM, mechanical CAD files, and licensing notices.
-
-**Not yet verified or implemented:**
-
-- Physical end-to-end test of all sensors, serial reception, and logged CSV values.
-- Wireless telemetry for an untethered flight.
-- Automatic flight-state detection and flight-test validation.
+**Note:** Implementation status indicates that code or design files are available in the repository. Complete operation on the physical ESP32-S3 prototype has not yet been verified.
 
 ## Contributing
 
-Issues, bug reports, documentation fixes, and pull requests are welcome. When reporting a hardware issue, include your ESP32-S3 board variant, Arduino ESP32 core version, wiring, and relevant serial logs where possible.
+Contributions are welcome!
+
+You can support OpenCanSat by reporting issues, improving documentation, testing hardware compatibility, or contributing code and design improvements.
+
+Please use GitHub Issues for bug reports and feature suggestions, and Pull Requests for proposed changes.
 
 ## License
 
-- **Software and firmware:** [MIT License](LICENSE).
-- **Original hardware designs:** [CERN Open Hardware Licence Version 2 – Permissive (CERN-OHL-P-2.0)](hardware/LICENSE).
-- **Third-party Fritzing parts and other external materials:** retain their respective licenses. See [Third-Party Notices](hardware/THIRD_PARTY_NOTICES.md).
+OpenCanSat uses separate licenses for software and hardware.
+
+| Material | License |
+|---|---|
+| Software and firmware | [MIT License](LICENSE) |
+| Original hardware designs | [CERN-OHL-P-2.0](hardware/LICENSE) |
+| Third-party materials | Respective original licenses |
+
+See [Third-Party Notices](hardware/THIRD_PARTY_NOTICES.md) for attribution and additional licensing information.
+
+---
+
+**OpenCanSat — Open Hardware. Open Software. Open Exploration.**
