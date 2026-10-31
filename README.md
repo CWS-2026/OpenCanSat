@@ -1,108 +1,119 @@
+<div align="center">
+
 # 🛰️ OpenCanSat
 
-<p align="center">
-  <strong>Open-source ESP32-S3 CanSat platform for environmental monitoring and flight-data acquisition</strong>
-</p>
+**An open-source ESP32-S3 CanSat platform for environmental monitoring and flight data acquisition.**
 
-<p align="center">
-  <a href="firmware/README.md">Firmware</a> ·
-  <a href="ground-station/README.md">Ground Station</a> ·
-  <a href="hardware/README.md">Hardware</a> ·
-  <a href="hardware/mechanical/OpenCanSat.mp4">3D Model Video</a>
-</p>
+**Wi-Fi Web Ground Station · Live Sensor Data · CSV Export · Open Hardware**
 
-![OpenCanSat 3D enclosure preview](hardware/mechanical/OpenCanSat.png)
+[**Get Started**](#quick-start) · [**Firmware**](firmware/README.md) · [**Hardware**](hardware/README.md) · [**3D Model Video**](hardware/mechanical/OpenCanSat.mp4)
+
+</div>
+
+![OpenCanSat enclosure preview](hardware/mechanical/OpenCanSat.png)
 
 ## Overview
 
-**OpenCanSat** is an ESP32-S3-based experimental CanSat system built around motion sensing, atmospheric measurements, GPS tracking, and real-time telemetry. Its integrated firmware streams sensor readings **wirelessly over 2.4 GHz Wi-Fi UDP** to a Python ground station. The ground station shows terminal logs and **automatically saves valid telemetry to CSV files**. USB serial remains available for bench debugging.
+**OpenCanSat** is an educational and experimental CanSat platform built around the **ESP32-S3**. It combines motion sensing, environmental measurements, and GPS in a compact, editable open-hardware design.
 
-The Wi-Fi system works without a router or an internet connection: the ESP32-S3 hosts an access point, and a Windows, macOS, or Linux laptop connects to it. **Hardware integration, flight range, power supply, and reliable operation during descent have not yet been validated.**
+The ESP32-S3 creates its **own Wi-Fi network and hosts a web ground station**. A phone, tablet, or laptop can connect directly to the CanSat and open the dashboard in a browser—**no router, internet connection, or separate Python ground-station program required**.
 
-## Features
+The dashboard displays live measurements and lets users **download collected readings as a CSV file**. The firmware also prints measurements over USB serial for debugging.
 
-| Area | Current implementation |
+> **Development status:** The Wi-Fi web-server firmware and hardware design files are available as a prototype. Flight range, sensor integration, power stability, and reliable operation during descent have **not yet been fully validated**.
+
+## Key Features
+
+| Area | Implementation |
 |---|---|
-| Motion | MPU6050: 3-axis acceleration and angular velocity |
-| Environment | BME280: temperature, humidity, pressure |
-| Position | NEO-6M: latitude, longitude, GPS altitude, satellites |
-| Wireless telemetry | ESP32-S3 Wi-Fi SoftAP → UDP ground station, **5 Hz nominal** |
-| Debug interface | Native USB serial, 115200 baud |
-| Ground station | Terminal-only Python receiver, Windows/macOS/Linux |
-| Data recording | **Automatic CSV logging on the ground-station PC** |
-| Open hardware | Fritzing wiring, pin mapping, BOM, Fusion 360 model and printable mesh |
+| **Motion sensing** | MPU6050: 3-axis acceleration (g) and angular velocity (deg/s) |
+| **Environmental sensing** | BME280: temperature (°C), humidity (%), pressure (hPa) |
+| **GPS** | NEO-6M: latitude, longitude, altitude, satellites |
+| **Wireless connection** | ESP32-S3 2.4 GHz Wi-Fi access point |
+| **Web ground station** | Live browser dashboard served directly by the CanSat |
+| **Data acquisition** | Nominal 5 Hz (one sample every 200 ms) |
+| **CSV export** | Download readings collected by the browser |
+| **Debugging** | USB serial output at 115200 baud |
+| **Open hardware** | Fritzing wiring, pin map, BOM, Fusion 360 CAD and 3D models |
 
 ## How It Works
 
 ```text
-  MPU6050 ── I2C ──┐
-  BME280  ── I2C ──┼── ESP32-S3 / OpenCanSat
-  NEO-6M  ── UART ─┘            │
-                           Wi-Fi SoftAP
-                         UDP telemetry, 5 Hz
-                                │
-                            Laptop (PC)
-                                │
-                     Python Ground Station
-                         ├── Live terminal
-                         └── CSV in logs/
+ MPU6050 ── I2C ──┐
+ BME280  ── I2C ──┼── ESP32-S3 / OpenCanSat
+ NEO-6M  ── UART ─┘           │
+                         Wi-Fi SoftAP
+                         HTTP Web Server
+                              │
+                    Phone / Tablet / Laptop
+                              │
+                      Web Ground Station
+                       ├── Live readings
+                       └── Download CSV
 
-  Optional: ESP32-S3 ── USB Serial ── PC (bench debugging)
+ Optional: ESP32-S3 ── USB Serial ── Computer (debug logs)
 ```
 
-### Wireless settings
+### Wi-Fi Connection
 
-| Parameter | Default |
+| Setting | Value |
 |---|---|
-| Wi-Fi SSID | `OpenCanSat` |
-| Wi-Fi password | `OpenCanSat1234` (**development-only; change before field use**) |
-| ESP32-S3 AP address | `192.168.4.1` |
-| UDP destination | Discovered from the ground station's `HELLO` message to port `4210` |
-| Telemetry interval | 200 ms (5 Hz nominal) |
-| CSV path | `ground-station/logs/flight_*.csv` |
+| Network name (SSID) | `ICanDo<NUMBER>` (e.g. `ICanDo1`) |
+| Wi-Fi password | `cbsh@CS1` |
+| Website | **http://opencansat.local/** |
+| Fallback website | **http://192.168.4.1/** |
+| Sampling interval | 200 ms (nominal 5 Hz) |
 
-The telemetry schema remains **`DATA` + 17 comma-separated fields**; the CSV adds `received_at_utc`. GPS refreshes at its own receiver rate, so repeated GPS readings can occur between 5 Hz telemetry packets.
+The Wi-Fi number can be fixed for each team's device by editing `AP_NUMBER_OVERRIDE` in the firmware. The default value `0` generates a number from the ESP32-S3 chip identifier. Some phones cannot resolve `.local` names on a local hotspot; use `192.168.4.1` in that case.
 
 ## Quick Start
 
-1. Wire the ESP32-S3 and sensors using the [pinout](hardware/pinout.md) and [wiring diagram](hardware/wiring/wiring_diagram.png). Verify power and module voltage requirements.
-2. Install the Arduino ESP32 board package, **Adafruit BME280 Library** (and dependencies), and **TinyGPSPlus**. Open [`firmware/OpenCanSat.ino/OpenCanSat.ino`](firmware/OpenCanSat.ino/OpenCanSat.ino) in Arduino IDE, select your ESP32-S3 board and native USB CDC settings, then compile and upload.
-3. Power the ESP32-S3. On your laptop, connect to the `OpenCanSat` Wi-Fi network. Keep the laptop connected even if the network has **no internet access**.
-4. From the `ground-station/` directory, start the ground station:
+### 1. Prepare the Hardware
 
-   **Windows:**
-   ```powershell
-   py ground_station.py
-   ```
+Connect the MPU6050, BME280, and NEO-6M to the ESP32-S3 using the [wiring diagram](hardware/wiring/wiring_diagram.png) and [pin configuration](hardware/pinout.md). Confirm supply voltages and wiring before power-on.
 
-   **macOS / Linux:**
-   ```bash
-   python3 ground_station.py
-   ```
+### 2. Upload the Firmware
 
-5. Watch `INFO`/`DATA` messages. The station records each valid `DATA` packet immediately to `ground-station/logs/`. Press `Ctrl+C` to stop.
+Install **Arduino IDE**, the **ESP32 by Espressif Systems** board package, **Adafruit BME280 Library** (and its dependencies), and **TinyGPSPlus**.
 
-To use USB instead, install `requirements.txt` and run `ground_station.py --transport serial`. See the [ground-station instructions](ground-station/README.md).
+Open [`OpenCanSat.ino`](firmware/OpenCanSat.ino/OpenCanSat.ino), set the device number if needed, select the correct ESP32-S3 board and USB port, then compile and upload.
 
-## Hardware
+See the detailed [firmware instructions](firmware/README.md), including USB CDC settings and upload troubleshooting.
+
+### 3. Connect Your Phone
+
+1. Power the ESP32-S3.
+2. Open Wi-Fi settings and select `ICanDo1` (or your device's actual `ICanDo` number).
+3. Enter the password `cbsh@CS1`.
+4. Keep the connection even if your phone says **"No internet"**.
+5. Open **http://opencansat.local/**, or **http://192.168.4.1/** if the name does not resolve.
+
+### 4. View and Export Data
+
+The webpage shows live sensor readings and GPS status. Keep the webpage open during the experiment. Tap **Download CSV** to save the browser-collected data to your device.
+
+**Important:** CSV export is **not continuous background storage**. Samples in the browser remain in memory until downloaded. The ESP32-S3 also keeps only a rolling **256-sample (~51-second) RAM buffer** to recover short interruptions; it does **not** write measurements permanently to SD card or flash. Lost or uncollected measurements cannot always be recovered.
+
+## Hardware & Mechanical Design
 
 | Component | Model | Purpose |
 |---|---|---|
-| Main controller | ESP32-S3 | Sensors and Wi-Fi UDP telemetry |
-| IMU | MPU6050 | Acceleration / angular velocity |
-| Environment | BME280 | Temperature / humidity / pressure |
-| GPS | NEO-6M | Position and altitude |
+| Microcontroller | ESP32-S3 | Control, Wi-Fi, and web server |
+| IMU | MPU6050 | Acceleration and angular velocity |
+| Environmental sensor | BME280 | Temperature, humidity, pressure |
+| GPS receiver | NEO-6M | Position, altitude, satellites |
 
 ![OpenCanSat wiring diagram](hardware/wiring/wiring_diagram.png)
 
-[CAD files and 3D model video](hardware/README.md) · [Bill of materials](hardware/BOM.csv) · [Pin mapping](hardware/pinout.md)
+[**Explore Wiring and CAD Files**](hardware/README.md) · [**View 3D Demonstration**](hardware/mechanical/OpenCanSat.mp4)
 
-## Repository Layout
+## Repository Structure
 
 ```text
 OpenCanSat/
 ├── README.md
 ├── LICENSE
+├── .gitignore
 ├── firmware/
 │   ├── README.md
 │   ├── OpenCanSat.ino/
@@ -111,10 +122,6 @@ OpenCanSat/
 │       ├── BME280/
 │       ├── MPU6050/
 │       └── NEO-6M/
-├── ground-station/
-│   ├── README.md
-│   ├── ground_station.py
-│   └── requirements.txt
 └── hardware/
     ├── README.md
     ├── LICENSE
@@ -125,45 +132,28 @@ OpenCanSat/
     └── mechanical/
 ```
 
-## Flight Readiness & Range Limitations
+The **web ground station is embedded in the ESP32-S3 firmware**. The former desktop Python `ground-station/` directory is not required for this version.
 
-**Wi-Fi being implemented does not mean it is flight-qualified.** Real usable range depends on the board antenna, enclosure, orientation/rotation, interference, line of sight, and receiving laptop. A brief connection on the ground is not proof of reliable reception throughout a drop. This version has **no retransmission or onboard storage**; packets lost over the air cannot be recovered afterward.
+## Development Status & Flight Limitations
 
-**Before any drop:**
+**Implemented in firmware:** integrated sensor reading, Wi-Fi access point, onboard HTTP dashboard, short-term RAM history, browser CSV download, and USB serial logs.
 
-1. Add and verify a properly regulated **independent power source**; the current BOM only lists the controller and sensors, not a flight battery.
-2. Confirm normal operation after disconnecting USB, then measure packet gaps and reception stability with both devices stationary.
-3. Repeat communication tests at increasing separation up to at least the **maximum expected slant range**, with the real enclosure fitted and with multiple orientations.
-4. Check the enclosure, parachute/recovery setup, environmental safety, and applicable site/competition rules.
-5. If continuous telemetry is critical, consider a **suitable long-range radio such as LoRa** and/or onboard nonvolatile logging (neither is currently implemented).
+**Still to validate:** successful compilation on the target Arduino ESP32 core, physical sensor readings, GPS fix, battery-powered operation, signal strength at the expected drop distance, and mechanical durability.
 
-The terminal reports **estimated** packet gaps from `device_ms`; these are diagnostic estimates, not guaranteed radio loss measurements. Do not choose a flight altitude based on an assumed Wi-Fi range.
-
-## Development Status
-
-| Item | Status |
-|---|---|
-| Integrated sensor firmware | Code available |
-| Wi-Fi SoftAP / UDP wireless telemetry | Code available; physical test pending |
-| USB debugging | Code available; physical test pending |
-| Cross-platform ground station | Code available |
-| CSV recording + link-gap estimates | Code available; PC-side testing possible |
-| Wiring, pin map, mechanical CAD | Available |
-| Flight battery / self-powered operation | Not documented or validated |
-| Sustained flight-range qualification | Not validated |
-| LoRa / other long-range telemetry | Not implemented |
-| Onboard recovery of lost data | Not implemented |
+**Wi-Fi is not guaranteed to work reliably throughout a drop.** Range and packet reception depend on altitude, distance, antenna placement, rotation, enclosure material, interference, and the receiving phone. The current web solution does not provide reliable long-range telemetry or permanent onboard backup storage. Perform controlled range tests before any descent experiment.
 
 ## Contributing
 
-Feedback, test results, bug reports, documentation improvements, and pull requests are welcome. When filing an issue, please include your ESP32-S3 board revision, Arduino-ESP32 core version, relevant wiring, and serial/ground-station logs.
+Issues, documentation fixes, testing reports, and pull requests are welcome. Please include your board model, wiring, Arduino core version, and relevant serial output when reporting a problem.
 
 ## License
 
-- [MIT License](LICENSE): project software and firmware.
-- [CERN-OHL-P-2.0](hardware/LICENSE): original hardware designs owned by project contributors.
-- [Third-Party Notices](hardware/THIRD_PARTY_NOTICES.md): third-party Fritzing parts and other materials retain their respective rights and license conditions.
+| Material | License |
+|---|---|
+| Software and firmware | [MIT License](LICENSE) |
+| Original hardware designs | [CERN-OHL-P-2.0](hardware/LICENSE) |
+| Third-party parts and graphics | Their respective original licenses; see [Third-Party Notices](hardware/THIRD_PARTY_NOTICES.md) |
 
 ---
 
-*OpenCanSat — Open Hardware. Open Software. Open Exploration.*
+<div align="center"><strong>OpenCanSat — Open Hardware. Open Software. Open Exploration.</strong></div>
