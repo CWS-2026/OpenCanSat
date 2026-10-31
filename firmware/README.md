@@ -1,106 +1,134 @@
 # OpenCanSat Firmware
 
-Arduino firmware for the ESP32-S3. It reads **MPU6050**, **BME280**, and **NEO-6M** measurements and streams `DATA` packets to the [Python ground station](../ground-station/README.md) over **Wi-Fi UDP**. Native USB serial remains available for debugging. No onboard data logging is implemented.
+ESP32-S3 Arduino firmware for sensor acquisition, **self-hosted Wi-Fi web telemetry**, browser-based CSV export, and USB serial debugging.
 
-## Source Files
+This version does **not** require a separate PC/Python ground-station program. The website is embedded in `OpenCanSat.ino` and served directly by the CanSat.
 
-| File | Purpose |
+## Files
+
+| Path | Description |
 |---|---|
-| [`OpenCanSat.ino/OpenCanSat.ino`](OpenCanSat.ino/OpenCanSat.ino) | Integrated Wi-Fi telemetry firmware |
-| [`tests/MPU6050/MPU6050.ino`](tests/MPU6050/MPU6050.ino) | MPU6050 sensor test |
-| [`tests/BME280/BME280.ino`](tests/BME280/BME280.ino) | BME280 sensor test |
-| [`tests/NEO-6M/NEO-6M.ino`](tests/NEO-6M/NEO-6M.ino) | GPS test |
+| [`OpenCanSat.ino/OpenCanSat.ino`](OpenCanSat.ino/OpenCanSat.ino) | Integrated Wi-Fi web ground-station firmware |
+| [`tests/MPU6050/MPU6050.ino`](tests/MPU6050/MPU6050.ino) | Standalone MPU6050 test |
+| [`tests/BME280/BME280.ino`](tests/BME280/BME280.ino) | Standalone BME280 test |
+| [`tests/NEO-6M/NEO-6M.ino`](tests/NEO-6M/NEO-6M.ino) | Standalone GPS test |
 
-The current GitHub sketch directory is named `OpenCanSat.ino/`; Arduino IDE conventionally expects the sketch folder to be `OpenCanSat/` containing `OpenCanSat.ino`. Rename the folder if Arduino IDE requires it, and update links if the repository path changes.
+> The repository currently uses the directory name `OpenCanSat.ino/`. Arduino projects are conventionally placed in a directory called `OpenCanSat/` containing `OpenCanSat.ino`. You may rename the directory for clarity; if you do, update the Markdown links in the README files.
 
-## Prerequisites
+## Requirements
 
-- Arduino IDE with the Espressif **esp32** boards package and a suitable ESP32-S3 board selection.
-- **Adafruit BME280 Library** and dependencies (Adafruit Unified Sensor / BusIO when required).
-- **TinyGPSPlus** library.
-- Native Arduino ESP32 `Wire`, `HardwareSerial`, `WiFi`, and `WiFiUdp` libraries (no separate UDP dependency).
-- USB data cable for firmware upload and debugging; **independent regulated power is required for untethered flight**.
+- ESP32-S3 development board and a USB **data** cable
+- Arduino IDE 2.x with the **ESP32 by Espressif Systems** board package
+- **Adafruit BME280 Library**, plus its required **Adafruit Unified Sensor** and **Adafruit BusIO** dependencies
+- **TinyGPSPlus** library
+- ESP32 board-package libraries: `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, and `HardwareSerial` (no separate installation normally needed)
 
-## Pinout
+## Pin Configuration
 
-| Peripheral | Connection | ESP32-S3 |
+| Module / Signal | ESP32-S3 GPIO | Notes |
 |---|---|---|
-| MPU6050 and BME280 | Shared SDA | GPIO8 |
-| MPU6050 and BME280 | Shared SCL | GPIO9 |
-| NEO-6M TX | UART receiver | GPIO44 |
-| NEO-6M RX | UART transmitter | GPIO43 |
+| MPU6050 SDA + BME280 SDA | GPIO8 | Shared I2C bus |
+| MPU6050 SCL + BME280 SCL | GPIO9 | Shared I2C bus |
+| NEO-6M TX → ESP32 RX | GPIO44 | GPS UART receive |
+| NEO-6M RX ← ESP32 TX | GPIO43 | GPS UART transmit |
 
-- MPU6050 address: `0x68`.
-- BME280 addresses attempted: `0x76`, then `0x77`.
-- GPS UART: **9600 baud**.
-- Optional USB serial: **115200 baud**.
+- MPU6050 default I2C address: `0x68`.
+- BME280 I2C addresses checked: `0x76` and `0x77`.
+- GPS UART baud rate: **9600**.
+- USB serial baud rate: **115200**.
 
-**USB warning:** GPIO43 and GPIO44 can be UART0 pins. The sketch uses them for GPS, so use the correct **native USB / USB CDC On Boot** setup for your specific board rather than relying on UART0 for logs. Check the [wiring documentation](../hardware/pinout.md).
+**GPIO43 and GPIO44 can overlap with ESP32-S3 UART0 functions.** Use the appropriate **native USB** port and enable **USB CDC On Boot** where supported by the board configuration. Disconnect conflicting peripherals temporarily if uploading fails. Check the [hardware pinout](../hardware/pinout.md) before wiring.
 
-## Wireless Telemetry Configuration
+## Wi-Fi & Website Configuration
 
-Edit these constants near the top of the `.ino` file if needed:
+The ESP32-S3 uses **Wi-Fi SoftAP mode**: it creates a local wireless network without a router or internet service.
 
-| Constant | Default | Meaning |
-|---|---|---|
-| `WIFI_SSID` | `OpenCanSat` | ESP32 access point name |
-| `WIFI_PASSWORD` | `OpenCanSat1234` | Development password; **change before field use** |
-| `WIFI_CHANNEL` | `6` | Fixed 2.4 GHz channel; choose based on local congestion |
-| `UDP_PORT` | `4210` | ESP32 UDP listening port |
-| `TELEMETRY_INTERVAL_MS` | `200` | Nominal **5 Hz** data rate |
-| `PEER_TIMEOUT_MS` | `10000` | Ground-station `HELLO` timeout |
+| Setting | Default |
+|---|---|
+| Network name | `ICanDo<NUMBER>` |
+| Wi-Fi password | `cbsh@CS1` |
+| Web address (mDNS) | `http://opencansat.local/` |
+| Fallback IP address | `http://192.168.4.1/` |
+| Wi-Fi channel | `6` |
+| Sampling interval | `200 ms` (nominal 5 Hz) |
+| RAM history | `256` samples (~51 seconds at 5 Hz) |
 
-SoftAP address: `192.168.4.1/24`. The ESP32 runs its **own Wi-Fi access point**; internet/router access is unnecessary. The laptop connects to the AP, and the ground station sends `HELLO` every 2 s to `192.168.4.1:4210`. The ESP32 replies to the source IP and UDP port observed in that handshake.
+### Change the Wi-Fi Name
 
-This is a best-effort UDP telemetry stream. Lost datagrams are **not retransmitted**. The ESP32 does not save data that the ground station fails to receive.
+Open `OpenCanSat.ino` and find:
 
-## Upload and Run
+```cpp
+constexpr uint32_t AP_NUMBER_OVERRIDE = 0;
+```
 
-1. Wire sensors and supply power according to the [hardware documentation](../hardware/README.md).
-2. Open the [main sketch](OpenCanSat.ino/OpenCanSat.ino), select your ESP32-S3 board, and configure native USB CDC where applicable.
-3. Compile and upload the sketch from Arduino IDE.
-4. Connect your computer to `OpenCanSat` Wi-Fi. A warning that the network has **no internet** is expected.
-5. Run the [ground station](../ground-station/README.md): `python3 ground_station.py` on macOS/Linux or `py ground_station.py` on Windows.
-6. Watch incoming `INFO` and `DATA` messages. CSV records are saved on the PC to `ground-station/logs/`.
+Use `1` for **`ICanDo1`**, `2` for **`ICanDo2`**, etc. A value of `0` automatically generates a number from the ESP32-S3 chip identifier (for example, `ICanDo893764`).
 
-Optional USB debugging: `ground_station.py --transport serial` (requires pyserial). Close Arduino Serial Monitor before opening the same USB serial port in Python.
+```cpp
+constexpr uint32_t AP_NUMBER_OVERRIDE = 1;
+constexpr char AP_PASSWORD[] = "cbsh@CS1";
+```
 
-## Telemetry Protocol
+After modifying these values, **upload the sketch again**. Wi-Fi access-point passwords must contain at least 8 characters. Avoid publishing unique or sensitive Wi-Fi passwords in public repositories.
 
-One UDP datagram contains one line. The data protocol is **unchanged** from the earlier serial-only firmware:
+The firmware advertises `opencansat.local` using mDNS. Some mobile devices, especially certain Android configurations, may not resolve `.local` on this connection. **`192.168.4.1` remains the fallback**. When multiple CanSats are powered on, identical `.local` names may conflict; use the IP address or connect to only one at a time.
+
+## Upload Instructions (Arduino IDE)
+
+1. Connect the ESP32-S3 through its USB **data** port.
+2. Open the main `.ino` sketch in Arduino IDE.
+3. Select **ESP32S3 Dev Module** or your board's exact model under **Tools → Board**.
+4. Select the detected USB/COM port under **Tools → Port**.
+5. Where supported, set **USB CDC On Boot → Enabled** and use the native USB connection for serial messages.
+6. Set `AP_NUMBER_OVERRIDE` to your team's assigned number, if needed.
+7. Click **Verify**, then **Upload**.
+8. Open **Serial Monitor** at **115200 baud** to confirm the reported Wi-Fi name, status, and address.
+
+If upload fails with `Failed to connect to ESP32-S3`, close other serial applications, verify the cable and port, try a slower upload speed, and—if necessary—enter bootloader mode by holding **BOOT**, pressing and releasing **RST/EN**, then releasing **BOOT** and uploading. Temporarily disconnect components using conflicting UART pins while debugging.
+
+## Connect a Phone or Laptop
+
+1. Power the CanSat independently or by USB for bench testing.
+2. Join its `ICanDo<NUMBER>` Wi-Fi network using `cbsh@CS1`.
+3. Remain connected even if the phone reports **no internet**.
+4. Open **http://opencansat.local/** or **http://192.168.4.1/** in a browser.
+5. Keep the page open to collect readings, and tap **Download CSV** before closing it.
+
+## Firmware Functions & Data Interfaces
+
+### Sensor acquisition
+
+The firmware reads the **MPU6050**, **BME280**, and **NEO-6M** approximately every 200 ms and continuously parses GPS serial input. A GPS fix may take time, especially indoors. `null` values in the web API indicate unavailable numeric readings.
+
+### Embedded web interface
+
+| Route | Purpose |
+|---|---|
+| `GET /` | Mobile-friendly ground-station webpage |
+| `GET /api/telemetry?after=0` | JSON telemetry samples after the supplied sequence number |
+
+The telemetry API returns `latest_seq`, `oldest_seq`, and a `samples` array. Requests are served in batches (up to 24 samples per response). The built-in webpage polls the API and displays current readings.
+
+### USB serial output
+
+The same sensor readings are also printed as comma-separated serial records at **115200 baud**:
 
 ```text
 DATA,device_ms,mpu_ok,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,bme_ok,temp_c,humidity_pct,pressure_hpa,gps_fix,latitude,longitude,gps_altitude_m,satellites
 ```
 
-The literal transmitted `DATA,` line contains **17 values** after `DATA`, without a column header. The Python ground station adds `received_at_utc` when writing CSV (18 columns in total).
+The example above shows the **field order**, not a header transmitted by the firmware. Each record begins with `DATA` followed by 17 values. Startup and status messages begin with `INFO,` or `ERROR,`.
 
-| Field group | Units / meaning |
-|---|---|
-| `device_ms` | ESP32 uptime in ms |
-| `mpu_ok`, `bme_ok`, `gps_fix` | Validity flags, 0 or 1 |
-| `ax_g`, `ay_g`, `az_g` | Acceleration in g; default MPU6050 full-scale ±2 g |
-| `gx_dps`, `gy_dps`, `gz_dps` | Angular velocity in °/s; default full-scale ±250 °/s |
-| `temp_c`, `humidity_pct`, `pressure_hpa` | °C, %RH, hPa |
-| `latitude`, `longitude`, `gps_altitude_m` | Decimal degrees and GPS altitude (m) |
-| `satellites` | Reported visible satellites, or 0 if stale/unavailable |
+### CSV recording: important distinction
 
-Unavailable readings are represented by `nan`; sensor access failures do not intentionally halt the main loop. Failed sensor initialization is retried approximately every 5 s.
+The webpage collects samples **in the browser's memory** and creates a CSV download when the user taps **Download CSV**. Each saved row includes a browser-generated UTC timestamp and the sensor fields.
 
-**Sensor-rate note:** the firmware sends measurement records nominally every 200 ms, but the NEO-6M's GPS output may update more slowly. Several consecutive records can therefore repeat a valid GPS position. The MPU6050 ±2 g range can saturate under strong impacts; change sensor full-scale registers and scale factors together if higher acceleration range is required.
+The ESP32-S3 **does not save data permanently** in this version. It retains only a 256-sample (~51-second) rolling buffer in RAM, so data may be lost if the phone is disconnected for too long, the page is closed without exporting, or the board loses power. This is **not** a flight-safe data logger.
 
-## Flight Reliability Limits
+## Development & Safety Notes
 
-- The Wi-Fi connection depends on 2.4 GHz radio visibility and receiving-device antenna characteristics; no guaranteed range is claimed.
-- The case, battery, and antenna placement can significantly affect reception. A USB-only power supply does not work after untethering.
-- Loss of Wi-Fi means **irrecoverable data gaps** with this no-storage design.
-- Do not rely on a successful short-range test as evidence that the link will work at the maximum drop distance or through rotation.
-- Link-gap estimates displayed by the ground station are derived from `device_ms`, not RF measurements.
+- The site and CSV download are designed for local experiments; no internet or cloud account is needed.
+- The Wi-Fi link's usable range during descent has **not been validated**. Do not assume reliable communication at the planned drop altitude.
+- Battery-powered flight requires a properly regulated supply, suitable protection, and bench testing under Wi-Fi load.
+- Physical compilation, integrated sensor operation, and flight performance need validation on the target board.
 
-For higher-assurance flight data, use an appropriate long-range radio link and/or add onboard storage. These are **not included** in this firmware.
-
-## Development Status
-
-Integrated Wi-Fi UDP and USB debug code is provided; **compilation, flashing, outdoor reception range, battery operation, and end-to-end flight tests on the physical target have not been verified here**.
-
-Software license: [MIT](../LICENSE). Hardware license and third-party notices: [hardware/](../hardware/README.md).
+See [Hardware Documentation](../hardware/README.md). Firmware source code is provided under the repository's [MIT License](../LICENSE).
